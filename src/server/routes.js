@@ -1,9 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const validator = require('validator');
-const { Connection, getUserByEmail, createUser, editUserById, updateUserPassword } = require('./dbconfig/db.js');
-const { path } = require('@hapi/joi/lib/errors.js');
-const { options } = require('@hapi/joi/lib/base.js');
+const { Connection, getUserByEmail, createUser, editUserById, updateUserPassword } = require('../dbconfig/db.js');
 require('dotenv').config();
 
 //const users = Datastore.create('Users.db');
@@ -11,6 +8,16 @@ const allowedDomains = ['gmail.com'];
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const routes = [
+    {
+      method: 'GET',
+      path: '/',
+      handler: (request, h) => {
+        return h.response({
+          status: 'success',
+          message: 'HI'
+        });
+      }
+    },
   // get all user
   {
     method: 'GET',
@@ -321,12 +328,15 @@ const routes = [
             const hashedPassword = await bcrypt.hash(newPassword, 10);
             // Ambil data pengguna dari JWT token
             const user = request.auth.credentials;
+            console.log("Data dari JWT:", user);
             // Perbarui password di database
             const updateResult = await updateUserPassword(user.user_id, hashedPassword);
+
+            // Jika tidak ada perubahan, beri respons gagal
             if (!updateResult) {
                 return h.response({
                     status: 'fail',
-                    message: 'Gagal memperbarui password!',
+                    message: 'Gagal memperbarui password! Pastikan user_id valid'
                 }).code(500);
             }
 

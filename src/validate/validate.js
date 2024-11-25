@@ -1,4 +1,4 @@
-const { getUserById } = require('./dbconfig/db.js');
+const { getUserById } = require('../dbconfig/db.js');
 require('dotenv').config();
 
 const validate = async (decoded, request, h) => {

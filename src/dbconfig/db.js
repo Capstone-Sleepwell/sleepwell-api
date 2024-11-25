@@ -17,9 +17,6 @@ async function connectDB() {
     try {
         await sequelize.authenticate();
         console.log('Koneksi Berhasil!');
-        // tampilkan data user
-        //const [allUsers] = await sequelize.query('SELECT * FROM users');
-        //console.log(allUsers);
     } catch (error) {
         console.log('Koneksi Gagal!');
     }
@@ -114,14 +111,23 @@ async function editUserById(userData) {
 async function updateUserPassword(userId, hashedPassword) {
     try {
         await connectDB();
+        console.log(`Mencoba mengupdate password untuk user_id: ${userId}`);
         // kueri
-        const [result] = await sequelize.query(
-            'UPDATE users SET user_password = :hashedPassword WHERE user_id = :userid',
+        const result = await sequelize.query(
+            'UPDATE users SET user_password = :hashedPassword WHERE user_id = :userId',
             {
-                replacements: { hashedPassword, userId }
+                replacements: { userId, hashedPassword }
             }
         );
-        return result;
+        console.log("Hasil update:", result);
+        // Periksa apakah query berhasil memperbarui baris
+        if (result[0].affectedRows > 0) {
+            console.log("Password berhasil diperbarui!");
+            return true;
+        } else {
+            console.log("Tidak ada perubahan pada database!");
+            return false;
+        }
     } catch (error) {
         return null;
     }

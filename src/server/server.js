@@ -1,9 +1,9 @@
 require('dotenv').config();
 const Hapi = require('@hapi/hapi');
-const routes = require('./routes');
+const routes = require('../server/routes.js');
 const Bell = require('@hapi/bell');
 const Cookie = require('@hapi/cookie');
-const validate = require('./validate');
+const validate = require('../validate/validate.js');
 const HapiAuthJwt2 = require('hapi-auth-jwt2');
 
 const init = async () => {
