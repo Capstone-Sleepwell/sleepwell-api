@@ -25,7 +25,7 @@ const routes = [
   // get user by id (DONE)
   {
     method: "GET",
-    path: "/users/profile/{id}",
+    path: "/users/profile",
     options: {
       auth: "jwt",
     },
@@ -34,7 +34,7 @@ const routes = [
   // endpoint edit profile (name/birthday/gender) (DONE)
   {
     method: "PUT",
-    path: "/users/profile/edit/{id}",
+    path: "/users/profile/edit",
     options: {
       auth: "jwt",
     },
@@ -64,15 +64,6 @@ const routes = [
   // endpoint set password untuk google user
   {
     method: "POST",
-    path: "/users/profile/setPassword",
-    options: {
-      auth: "jwt",
-    },
-    handler: addPasswordGoogleHandler,
-  },
-
-  {
-    method: "get",
     path: "/users/profile/setPassword",
     options: {
       auth: "jwt",

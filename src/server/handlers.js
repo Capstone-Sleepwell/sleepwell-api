@@ -1,10 +1,10 @@
 const {
-  Connection,
+  getAllUsers,
   getUserByEmail,
   createUser,
   editUserById,
   updateUserPassword,
-} = require("../dbconfig/db.js");
+  getUserById} = require("../dbconfig/db.js");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
@@ -16,7 +16,7 @@ const dateObj = new Date();
 const month = dateObj.getMonth() + 1; // months from 1-12
 const day = dateObj.getDate();
 const year = dateObj.getFullYear();
-const date = year + "/" + month + "/" + day;
+const date = year + "-" + month + "-" + day;
 
 const getHomeHandler = (request, h) => {
   return h.response({
@@ -28,7 +28,7 @@ const getHomeHandler = (request, h) => {
 const getUsersHandler = async (request, h) => {
   try {
     // get all user from db
-    const users = await Connection.getAllUsers();
+    const users = await getAllUsers();
     return h
       .response({
         status: "success",
@@ -49,17 +49,12 @@ const getUserHandler = async (request, h) => {
   try {
     // Data user dari validasi token JWT
     const user = request.auth.credentials;
+
     // Kembalikan data profile user
     return h
       .response({
         status: "success",
-        data: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          birthDate: user.birthdate,
-          gender: user.gender,
-        },
+        data: user
       })
       .code(200);
   } catch (error) {

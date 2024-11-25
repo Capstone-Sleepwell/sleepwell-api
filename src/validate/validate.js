@@ -10,11 +10,11 @@ const validate = async (decoded, request, h) => {
         return {
             isValid: true,
             credentials: {
-                user_id: user[0].user_id,
-                user_name: user[0].user_name,
-                user_email: user[0].user_email,
-                user_birthdate: user[0].user_birthdate,
-                user_gender: user[0].user_gender,
+                id: user[0].id,
+                name: user[0].name,
+                email: user[0].email,
+                birthdate: user[0].birthdate,
+                gender: user[0].gender,
             },
         };
     } catch (err) {
