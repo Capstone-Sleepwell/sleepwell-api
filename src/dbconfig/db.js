@@ -1,52 +1,38 @@
 const Sequelize = require("sequelize");
 const crypto = require("crypto");
+const mysql = require('mysql2/promise');
 require("dotenv").config();
 
 // koneksi
-const sequelize = new Sequelize(
-  process.env.DATABASE_NAME,
-  process.env.DATABASE_USER,
-  process.env.DATABASE_PASSWORD,
-  {
-    host: "localhost",
-    port: 3306,
-    dialect: "mysql",
-  }
-);
+const db = mysql.createPool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  port: process.env.DB_PORT,
+});
 
 function generateRandomId() {
   return crypto.randomBytes(5).toString("hex");
 }
-// koneksi
-async function connectDB() {
-  try {
-    await sequelize.authenticate();
-    console.log("Koneksi Berhasil!");
-  } catch (error) {
-    console.log("Koneksi Gagal!");
-  }
-}
+
 //fungsi create user baru
 async function createUser(userData) {
   try {
-    //id
+    // ambil data dari userdata
+    const { name, email, password, birthdate, gender, google_id } = userData;
     const userId = generateRandomId();
-    userData.id = userId;
-
+    const currentDate = new Date().toISOString().slice(0, 19).replace("T", " "); // Format 'YYYY-MM-DD HH:MM:SS'
     // simpan user ke db
-    await sequelize.query(
-      "INSERT INTO users (id, name, email, password, birthdate, gender, google_id, createdAt, updatedAt) VALUES (:id, :name, :email, :password, :birthday, :gender, :google_id, :createdAt, :updatedAt)",
-      {
-        replacements: userData,
-      }
+    await db.query(
+      "INSERT INTO users (id, name, email, password, birthdate, gender, google_id, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      [userId, name, email, password, birthdate, gender, google_id, currentDate, currentDate]
     );
 
     // ambil user yang baru dibuat
-    const [newUser] = await sequelize.query(
-      "SELECT * FROM users WHERE id = :id",
-      {
-        replacements: { id: userId },
-      }
+    const [newUser] = await db.query(
+      "SELECT * FROM users WHERE id = ?",
+      [userId]
     );
     // return data user
     return newUser[0];
@@ -57,9 +43,7 @@ async function createUser(userData) {
 // fungsi untuk mengambil seluruh data user
 async function getAllUsers() {
   try {
-    await connectDB();
-    // tampilkan seluruh user
-    const [allUsers] = await sequelize.query("SELECT * FROM users");
+    const [allUsers] = await db.query("SELECT * FROM users");
     return allUsers;
   } catch (error) {
     return error;
@@ -68,13 +52,9 @@ async function getAllUsers() {
 //fungsi untuk mencari user berdasarkan id
 async function getUserById(userId) {
   try {
-    await connectDB();
-    // user
-    const [userById] = await sequelize.query(
-      `SELECT * FROM users WHERE id = :userId`,
-      {
-        replacements: { userId },
-      }
+    const [userById] = await db.query(
+      `SELECT * FROM users WHERE id = ?`,
+      [userId]
     );
     return userById;
   } catch (error) {
@@ -84,12 +64,9 @@ async function getUserById(userId) {
 // fungsi untuk mencari user dengan email
 async function getUserByEmail(email) {
   try {
-    // kueri
-    const [userByEmail] = await sequelize.query(
-      "SELECT * FROM users WHERE email = :email",
-      {
-        replacements: { email },
-      }
+    const [userByEmail] = await db.query(
+      "SELECT * FROM users WHERE email = ?",
+      [email]
     );
     return userByEmail[0];
   } catch (error) {
@@ -99,19 +76,16 @@ async function getUserByEmail(email) {
 // fungsi untuk mengedit data user berdasarkan id
 async function editUserById(userData) {
   try {
-    await connectDB();
-    // kueri
-    await sequelize.query(
-      "UPDATE users SET name = :name, birthdate = :birthdate, gender = :gender, updatedAt = :updatedAt WHERE id = :userId",
-      {
-        replacements: userData,
-      }
+    const { userId, name, birthdate, gender } = userData;
+    const currentDate = new Date().toISOString().slice(0, 19).replace("T", " "); // Format 'YYYY-MM-DD HH:MM:SS'
+
+    await db.query(
+      "UPDATE users SET name = ?, birthdate = ?, gender = ?, updatedAt = ? WHERE id = ?",
+      [name, birthdate, gender, currentDate, userId]
     );
-    const [updatedData] = await sequelize.query(
-      "SELECT id, name, birthdate, gender, updatedAt FROM users WHERE id = :userId",
-      {
-        replacements: { userId: userData.userId },
-      }
+    const [updatedData] = await db.query(
+      "SELECT id, name, birthdate, gender, updatedAt FROM users WHERE id = ?",
+      [userId]
     );
     return updatedData;
   } catch (error) {
@@ -121,22 +95,14 @@ async function editUserById(userData) {
 // fungsi update password
 async function updateUserPassword(userId, hashedPassword) {
   try {
-    await connectDB();
-    console.log(`Mencoba mengupdate password untuk id: ${userId}`);
-    // kueri
-    const result = await sequelize.query(
-      "UPDATE users SET password = :hashedPassword WHERE id = :userId",
-      {
-        replacements: { userId, hashedPassword },
-      }
+    const result = await db.query(
+      "UPDATE users SET password = ? WHERE id = ?",
+      [hashedPassword, userId]
     );
-    console.log("Hasil update:", result);
     // Periksa apakah query berhasil memperbarui baris
     if (result[0].affectedRows > 0) {
-      console.log("Password berhasil diperbarui!");
       return true;
     } else {
-      console.log("Tidak ada perubahan pada database!");
       return false;
     }
   } catch (error) {

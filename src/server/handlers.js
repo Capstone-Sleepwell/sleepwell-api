@@ -12,11 +12,6 @@ require("dotenv").config();
 //const users = Datastore.create('Users.db');
 const allowedDomains = ["gmail.com"];
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const dateObj = new Date();
-const month = dateObj.getMonth() + 1; // months from 1-12
-const day = dateObj.getDate();
-const year = dateObj.getFullYear();
-const date = year + "-" + month + "-" + day;
 
 const getHomeHandler = (request, h) => {
   return h.response({
@@ -79,7 +74,6 @@ const editUserHandler = async (request, h) => {
       birthdate: birthday,
       gender: gender,
       userId: user.id,
-      updatedAt: date,
     });
     // response
     return h
@@ -102,9 +96,9 @@ const editUserHandler = async (request, h) => {
 const addUserHandler = async (request, h) => {
   try {
     // Dapatkan data user dari payload
-    const { name, email, password, gender, birthday } = request.payload;
+    const { name, email, password, gender, birthdate } = request.payload;
     // pastikan semua data terisi
-    if (!name || !email || !password || !gender || !birthday) {
+    if (!name || !email || !password || !gender || !birthdate) {
       return h
         .response({
           status: "fail",
@@ -146,16 +140,17 @@ const addUserHandler = async (request, h) => {
     }
     // hased password
     const hasedPassword = await bcrypt.hash(password, 10);
+    const currentDate = new Date().toISOString().slice(0, 19).replace("T", " "); // Format 'YYYY-MM-DD HH:MM:SS'
     // masukan data ke database
     const newUser = await createUser({
       name: name,
       email: email,
       password: hasedPassword,
-      birthday: birthday,
+      birthdate: birthdate,
       gender: gender,
       google_id: null,
-      createdAt: date,
-      updatedAt: date,
+      createdAt: currentDate,
+      updatedAt: currentDate
     });
     // token
     const token = jwt.sign(
@@ -273,11 +268,15 @@ const loginGoogleHandler = async (request, h) => {
         id: exsistingUser.id,
       });
     }
+
+    const currentDate = new Date().toISOString().slice(0, 19).replace("T", " ");
     // jika user belum terdaftar, simpan data ke dalam database
     const newUser = await createUser({
       google_id: profile.id,
       name: profile.displayName,
       email: profile.email,
+      createdAt: currentDate,
+      updatedAt: currentDate,
     });
     // buat token
     const token = jwt.sign(
