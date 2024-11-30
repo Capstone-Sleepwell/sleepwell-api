@@ -8,6 +8,11 @@ const {
   loginUserHandler,
   loginGoogleHandler,
   addPasswordGoogleHandler,
+  addArticle,
+  getArticle,
+  addComment,
+  deleteComment,
+  deleteArticle,
 } = require("./handlers.js");
 
 const routes = [
@@ -43,13 +48,13 @@ const routes = [
   // endpoint register tanpa google (DONE)
   {
     method: "POST",
-    path: "/api/register",
+    path: "/register",
     handler: addUserHandler,
   },
   // enpoint login tanpa google (DONE)
   {
     method: "POST",
-    path: "/api/login",
+    path: "/login",
     handler: loginUserHandler,
   },
   // endpoint login dengan google (DONE)
@@ -69,6 +74,51 @@ const routes = [
       auth: "jwt",
     },
     handler: addPasswordGoogleHandler,
+  },
+  // endpoint post article
+  {
+    method: "POST",
+    path: "/articles",
+    options: {
+      auth: "jwt",
+    },
+    handler: addArticle,
+  },
+  // endpoint get article and comment
+  {
+    method: "GET",
+    path: "/articles/{id}",
+    options: {
+      auth: "jwt",
+    },
+    handler: getArticle,
+  },
+  // endpoint post comment
+  {
+    method: "POST",
+    path: "/articles/{id}",
+    options: {
+      auth: "jwt",
+    },
+    handler: addComment,
+  },
+  // endpoint post comment
+  {
+    method: "DELETE",
+    path: "/articles/{id}",
+    options: {
+      auth: "jwt",
+    },
+    handler: deleteArticle,
+  },
+  // endpoint delete comment
+  {
+    method: "DELETE",
+    path: "/articles/{id}/{commentId}",
+    options: {
+      auth: "jwt",
+    },
+    handler: deleteComment,
   },
 ];
 

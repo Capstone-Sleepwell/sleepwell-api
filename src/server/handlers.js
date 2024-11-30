@@ -4,7 +4,16 @@ const {
   createUser,
   editUserById,
   updateUserPassword,
-  getUserById} = require("../dbconfig/db.js");
+  getUserById,
+  postArticle,
+  getArticleById,
+  getUserIdByArticleId,
+  getUserIdByCommentId,
+  getCommentByArticleId,
+  deleteCommentById,
+  deleteArticleById,
+  postComment,
+} = require("../dbconfig/db.js");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
@@ -49,7 +58,7 @@ const getUserHandler = async (request, h) => {
     return h
       .response({
         status: "success",
-        data: user
+        data: user,
       })
       .code(200);
   } catch (error) {
@@ -67,9 +76,10 @@ const editUserHandler = async (request, h) => {
     // Data user dari validasi token jwt
     const user = request.auth.credentials;
     // Dapatkan data dari user
-    const { name, birthday, gender } = request.payload;
+    const { username, name, birthday, gender } = request.payload;
     // update
     const editedUser = await editUserById({
+      username: username,
       name: name,
       birthdate: birthday,
       gender: gender,
@@ -96,9 +106,10 @@ const editUserHandler = async (request, h) => {
 const addUserHandler = async (request, h) => {
   try {
     // Dapatkan data user dari payload
-    const { name, email, password, gender, birthdate } = request.payload;
+    const { username, name, email, password, gender, birthdate } =
+      request.payload;
     // pastikan semua data terisi
-    if (!name || !email || !password || !gender || !birthdate) {
+    if (!username || !name || !email || !password || !gender || !birthdate) {
       return h
         .response({
           status: "fail",
@@ -143,6 +154,7 @@ const addUserHandler = async (request, h) => {
     const currentDate = new Date().toISOString().slice(0, 19).replace("T", " "); // Format 'YYYY-MM-DD HH:MM:SS'
     // masukan data ke database
     const newUser = await createUser({
+      username: username,
       name: name,
       email: email,
       password: hasedPassword,
@@ -150,7 +162,7 @@ const addUserHandler = async (request, h) => {
       gender: gender,
       google_id: null,
       createdAt: currentDate,
-      updatedAt: currentDate
+      updatedAt: currentDate,
     });
     // token
     const token = jwt.sign(
@@ -273,6 +285,7 @@ const loginGoogleHandler = async (request, h) => {
     // jika user belum terdaftar, simpan data ke dalam database
     const newUser = await createUser({
       google_id: profile.id,
+      username: profile.displayName,
       name: profile.displayName,
       email: profile.email,
       createdAt: currentDate,
@@ -360,6 +373,155 @@ const addPasswordGoogleHandler = async (request, h) => {
   }
 };
 
+const addArticle = async (request, h) => {
+  try {
+    const { title, image, body } = request.payload;
+    const user = request.auth.credentials;
+
+    if (title.length > 50) {
+      return h
+        .response({
+          status: "fail",
+          message: "Title terlalu panjang !",
+        })
+        .code(400);
+    }
+
+    const result = await postArticle(user.id, title, image, body);
+
+    return h
+      .response({
+        status: "success",
+        message: result[0],
+      })
+      .code(200);
+  } catch (error) {
+    return h
+      .response({
+        status: "fail",
+        message: error.message,
+      })
+      .code(500);
+  }
+};
+
+const getArticle = async (request, h) => {
+  try {
+    const article = await getArticleById(request.params.id);
+    const comment = await getCommentByArticleId(request.params.id);
+    const tempArr = [...article[0], ...comment[0]];
+
+    return h
+      .response({
+        status: "success",
+        message: tempArr,
+      })
+      .code(200);
+  } catch (error) {
+    return h
+      .response({
+        status: "fail",
+        message: error.message,
+      })
+      .code(500);
+  }
+};
+
+const addComment = async (request, h) => {
+  try {
+    const { body } = request.payload;
+    const user = request.auth.credentials;
+    const comment = await postComment(user.id, request.params.id, body);
+
+    if (body.length > 255) {
+      return h
+        .response({
+          status: "fail",
+          message: "Title terlalu panjang !",
+        })
+        .code(400);
+    }
+
+    return h
+      .response({
+        status: "success",
+        message: comment[0],
+      })
+      .code(200);
+  } catch (error) {
+    return h
+      .response({
+        status: "fail",
+        message: error.message,
+      })
+      .code(500);
+  }
+};
+
+const deleteComment = async (request, h) => {
+  try {
+    const user = request.auth.credentials;
+    const comment = await getUserIdByCommentId(request.params.commentId);
+
+    if (user.id !== comment.userId) {
+      return h
+        .response({
+          status: "fail",
+          message: "User tidak berhak menghapus komen ini !",
+        })
+        .code(400);
+    }
+
+    await deleteCommentById(request.params.commentId);
+
+    return h
+      .response({
+        status: "success",
+        message: "Berhasil menghapus comment",
+      })
+      .code(200);
+  } catch (error) {
+    return h
+      .response({
+        status: "fail",
+        message: error.message,
+      })
+      .code(500);
+  }
+};
+
+const deleteArticle = async (request, h) => {
+  try {
+    const user = request.auth.credentials;
+    const article = await getUserIdByArticleId(request.params.id);
+
+    if (user.id !== article.userId) {
+      return h
+        .response({
+          status: "fail",
+          message: "User tidak berhak menghapus artikel ini !",
+        })
+        .code(400);
+    }
+
+    await deleteArticleById(request.params.id);
+
+    return h
+      .response({
+        status: "success",
+        message: "Berhasil menghapus artikel",
+      })
+      .code(200);
+  } catch (error) {
+    return h
+      .response({
+        status: "fail",
+        message: error.message,
+      })
+      .code(500);
+  }
+};
+
 module.exports = {
   getHomeHandler,
   getUsersHandler,
@@ -369,4 +531,9 @@ module.exports = {
   loginUserHandler,
   loginGoogleHandler,
   addPasswordGoogleHandler,
+  addArticle,
+  getArticle,
+  addComment,
+  deleteComment,
+  deleteArticle,
 };
