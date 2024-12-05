@@ -8,8 +8,8 @@ const HapiAuthJwt2 = require("hapi-auth-jwt2");
 
 const init = async () => {
   const server = Hapi.server({
-    port: 5000,
-    host: "localhost",
+    port: process.env.PORT || 8080,
+    host: "0.0.0.0",
     routes: {
       cors: {
         origin: ["*"],
@@ -38,11 +38,8 @@ const init = async () => {
     password: "cookie_encryption_password_secure",
     clientId: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    isSecure: false,
-    location: server.info.uri,
-    //providerParams: {
-    //    access_type: 'offline',
-    //},
+    isSecure: process.env.NODE_ENV === "production",
+    location: process.env.BASE_URL,
   });
   // rute
   server.route(routes);

@@ -59,11 +59,11 @@ const routes = [
   },
   // endpoint login dengan google (DONE)
   {
-    method: "GET",
+    method: "POST",
     path: "/auth/google",
-    options: {
-      auth: "google",
-    },
+    // options: {
+    //   auth: "google",
+    // },
     handler: loginGoogleHandler,
   },
   // endpoint set password untuk google user

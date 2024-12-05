@@ -1,22 +1,28 @@
-const Sequelize = require("sequelize");
-const crypto = require("crypto");
 const mysql = require("mysql2/promise");
-const nanoid = require("nanoid");
+const nanoid = require("nanoid"); 
 require("dotenv").config();
-
+let db;
 // koneksi
-const db = mysql.createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  port: process.env.DB_PORT,
-});
+async function initializeDB() {
+  try {
+    console.log("Initializing database connection...");
+    db = await mysql.createPool({
+      //socketPath: `/cloudsql/${process.env.DB_CONNECTION_NAME}`,
+      host: "34.50.86.58",
+      port: 3306,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASS,
+      database: process.env.DB_NAME,
+    });
+    console.log("Database connection established!");
+  } catch (error) {
+    console.error("Failed to initialize database connection:", error);
+    throw error;
+  }
+}
 
-const sequelize = new Sequelize("sleep_well", "root", "", {
-  host: "localhost",
-  port: 3306,
-  dialect: "mysql",
+initializeDB().catch((error) => {
+  console.error("Failed to initialize database connection:", error);
 });
 
 //fungsi create user baru
@@ -27,13 +33,27 @@ async function createUser(userData) {
       userData;
     const userId = nanoid(21);
     const currentDate = new Date().toISOString().slice(0, 19).replace("T", " "); // Format 'YYYY-MM-DD HH:MM:SS'
+    // const birthdateValue = birthdate ? birthdate : null;
     // simpan user ke db
-    await sequelize.query(
-      `INSERT INTO users (id, username, name, email, password, birthdate, gender, google_id, createdAt, updatedAt) VALUES ('${userId}', '${username}', '${name}', '${email}', '${password}', '${birthdate}', '${gender}', '${google_id}', '${currentDate}', '${currentDate}')`
+    await db.query(
+      `INSERT INTO users (id, username, name, email, password, birthdate, gender, google_id, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        userId,
+        username,
+        name,
+        email,
+        password,
+        birthdate || null,
+        gender,
+        google_id,
+        currentDate,
+        currentDate
+      ]
     );
 
     // ambil user yang baru dibuat
-    const [newUser] = await sequelize.query(
+    const [newUser] = await db.query(
       `SELECT * FROM users WHERE id = '${userId}'`
     );
     // return data user
@@ -46,16 +66,18 @@ async function createUser(userData) {
 // fungsi untuk mengambil seluruh data user
 async function getAllUsers() {
   try {
-    const [allUsers] = await sequelize.query("SELECT * FROM users");
+    const [allUsers] = await db.query("SELECT * FROM users");
+    console.log("Fetched users:", allUsers);
     return allUsers;
   } catch (error) {
-    return error;
+    console.error("Error fetching users:", error);
+    throw error;
   }
 }
 //fungsi untuk mencari user berdasarkan id
 async function getUserById(userId) {
   try {
-    const [userById] = await sequelize.query(
+    const [userById] = await db.query(
       `SELECT * FROM users WHERE id = '${userId}'`
     );
     return userById;
@@ -66,7 +88,7 @@ async function getUserById(userId) {
 // fungsi untuk mencari user dengan email
 async function getUserByEmail(email) {
   try {
-    const [userByEmail] = await sequelize.query(
+    const [userByEmail] = await db.query(
       `SELECT * FROM users WHERE email = '${email}'`
     );
     return userByEmail[0];
@@ -80,10 +102,10 @@ async function editUserById(userData) {
     const { userId, name, birthdate, gender } = userData;
     const currentDate = new Date().toISOString().slice(0, 19).replace("T", " "); // Format 'YYYY-MM-DD HH:MM:SS'
 
-    await sequelize.query(
+    await db.query(
       `UPDATE users SET name = '${name}', birthdate = '${birthdate}', gender = '${gender}', updatedAt = '${currentDate}' WHERE id = '${userId}'`
     );
-    const [updatedData] = await sequelize.query(
+    const [updatedData] = await db.query(
       `SELECT id, name, birthdate, gender, updatedAt FROM users WHERE id = '${userId}'`
     );
     return updatedData;
@@ -94,7 +116,7 @@ async function editUserById(userData) {
 // fungsi update password
 async function updateUserPassword(userId, hashedPassword) {
   try {
-    const result = await sequelize.query(
+    const result = await db.query(
       `UPDATE users SET password = '${hashedPassword}' WHERE id = '${userId}'`
     );
     // Periksa apakah query berhasil memperbarui baris
@@ -112,11 +134,11 @@ async function postArticle(userId, title, image, body) {
   const id = nanoid(21);
 
   try {
-    await sequelize.query(
+    await db.query(
       `INSERT INTO articles (id, userId, title, image, body) VALUES ('${id}', '${userId}', '${title}', '${image}', '${body}')`
     );
     // Periksa apakah query berhasil memperbarui baris
-    const check = await sequelize.query(
+    const check = await db.query(
       `SELECT * FROM articles WHERE id = '${id}'`
     );
 
@@ -128,7 +150,7 @@ async function postArticle(userId, title, image, body) {
 
 async function getArticleById(id) {
   try {
-    const result = await sequelize.query(
+    const result = await db.query(
       `SELECT * FROM articles WHERE id = '${id}'`
     );
 
@@ -140,7 +162,7 @@ async function getArticleById(id) {
 
 async function getCommentById(id) {
   try {
-    const result = await sequelize.query(
+    const result = await db.query(
       `SELECT * FROM comments WHERE id = '${id}'`
     );
 
@@ -152,7 +174,7 @@ async function getCommentById(id) {
 
 async function getUserIdByCommentId(id) {
   try {
-    const result = await sequelize.query(
+    const result = await db.query(
       `SELECT userId FROM comments WHERE id = '${id}'`
     );
 
@@ -164,7 +186,7 @@ async function getUserIdByCommentId(id) {
 
 async function getUserIdByArticleId(id) {
   try {
-    const result = await sequelize.query(
+    const result = await db.query(
       `SELECT userId FROM articles WHERE id = '${id}'`
     );
 
@@ -176,9 +198,9 @@ async function getUserIdByArticleId(id) {
 
 async function deleteArticleById(id) {
   try {
-    await sequelize.query(`DELETE FROM comments WHERE articleId = '${id}'`);
+    await db.query(`DELETE FROM comments WHERE articleId = '${id}'`);
 
-    const result = await sequelize.query(
+    const result = await db.query(
       `DELETE FROM articles WHERE id = '${id}'`
     );
 
@@ -190,7 +212,7 @@ async function deleteArticleById(id) {
 
 async function getCommentByArticleId(id) {
   try {
-    const result = await sequelize.query(
+    const result = await db.query(
       `SELECT * FROM comments WHERE articleId = '${id}'`
     );
 
@@ -205,11 +227,11 @@ async function postComment(userId, articleId, body) {
   const currentDate = new Date().toISOString().slice(0, 19).replace("T", " "); // Format 'YYYY-MM-DD HH:MM:SS'
 
   try {
-    await sequelize.query(
+    await db.query(
       `INSERT INTO comments (id, userId, articleId, body, createdAt, updatedAt) VALUES ('${id}', '${userId}', '${articleId}', '${body}', '${currentDate}', '${currentDate}')`
     );
 
-    const result = await sequelize.query(
+    const result = await db.query(
       `SELECT * FROM comments WHERE id = '${id}'`
     );
 
@@ -221,7 +243,7 @@ async function postComment(userId, articleId, body) {
 
 async function deleteCommentById(commentId) {
   try {
-    const result = await sequelize.query(
+    const result = await db.query(
       `DELETE FROM comments WHERE id = '${commentId}'`
     );
 
