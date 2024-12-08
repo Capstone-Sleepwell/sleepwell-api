@@ -19,8 +19,10 @@ const loadModel = async (userInput) => {
     );
 
     const prediction = model.predict(input);
+    const predictionArray = await prediction.array(); // Mengubah tensor menjadi array
+    const result = predictionArray[0][0];
 
-    return prediction;
+    return result;
   } catch (error) {
     return error;
   }
