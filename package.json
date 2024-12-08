@@ -13,6 +13,7 @@
   "dependencies": {
     "@hapi/hapi": "^21.3.12",
     "@tensorflow/tfjs-node": "^3.21.1",
-    "dotenv": "^16.4.7"
+    "dotenv": "^16.4.7",
+    "nanoid": "^2.0.0"
   }
 }

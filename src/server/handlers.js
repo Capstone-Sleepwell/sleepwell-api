@@ -1,4 +1,5 @@
-const { loadModel } = require("../services/loadModel");
+const nanoid = require("nanoid");
+const { predict } = require("../services/predict");
 
 const getHomeHandler = async (request, h) => {
   return h.response({
@@ -8,13 +9,15 @@ const getHomeHandler = async (request, h) => {
 };
 
 const postPredictHandler = async (request, h) => {
+  const { model } = request.server.app;
+
   const {
     sleepDuration,
     awakenings,
     stayAwake,
     age,
     gender,
-    cafeine,
+    caffeine,
     alcohol,
     smoking,
     exercise,
@@ -43,7 +46,7 @@ const postPredictHandler = async (request, h) => {
   if (
     age.length <= 0 ||
     gender.length <= 0 ||
-    cafeine.length <= 0 ||
+    caffeine.length <= 0 ||
     alcohol.length <= 0 ||
     smoking.length <= 0 ||
     exercise.length <= 0
@@ -54,21 +57,26 @@ const postPredictHandler = async (request, h) => {
     });
   }
 
-  const prediction = await loadModel({
+  const predictions = await predict(model, {
     age,
     gender,
-    cafeine,
+    caffeine,
     alcohol,
     smoking,
     exercise,
   });
 
+  const prediction = Math.round(predictions);
+
   let result = "";
+  let label = "";
   let suggestion = "";
-  if (Math.round(prediction * 100) < 33) {
-    if (cafeine > 0) {
+  if (prediction < 33) {
+    label = "Kemungkinan kualitas tidur buruk";
+    if (caffeine > 0) {
       suggestion = "Kurangi mengkonsumsi kafein";
     }
+
     if (alcohol > 0) {
       if (suggestion.length > 0) {
         suggestion = suggestion + ", kurangi mengkonsumsi alcohol";
@@ -76,6 +84,7 @@ const postPredictHandler = async (request, h) => {
         suggestion = "Kurangi mengkonsumsi alcohol";
       }
     }
+
     if (smoking > 0) {
       if (suggestion.length > 0) {
         suggestion = suggestion + ", kurangi pengkonsumsian rokok";
@@ -84,6 +93,7 @@ const postPredictHandler = async (request, h) => {
       }
       suggestion = "Kurangi pengkonsumsian rokok";
     }
+
     if (exercise <= 0) {
       if (suggestion.length > 0) {
         suggestion = suggestion + ", perbanyak olahraga";
@@ -97,10 +107,12 @@ const postPredictHandler = async (request, h) => {
     } else {
       result = `Berdasarkan inputan umur, jenis kelamin, kafein, alkohol, merokok, olahraga, mungkin mempengaruhi kualitas tidur. Kemungkinan ada penyebab lain selain inputan.`;
     }
-  } else if (Math.round(prediction * 100) < 66) {
-    if (cafeine > 0) {
+  } else if (prediction < 66) {
+    label = "Kemungkinan kualitas tidur kurang baik";
+    if (caffeine > 0) {
       suggestion = "Kurangi mengkonsumsi kafein";
     }
+
     if (alcohol > 0) {
       if (suggestion.length > 0) {
         suggestion = suggestion + ", kurangi mengkonsumsi alcohol";
@@ -108,6 +120,7 @@ const postPredictHandler = async (request, h) => {
         suggestion = "Kurangi mengkonsumsi alcohol";
       }
     }
+
     if (smoking > 0) {
       if (suggestion.length > 0) {
         suggestion = suggestion + ", kurangi pengkonsumsian rokok";
@@ -116,6 +129,7 @@ const postPredictHandler = async (request, h) => {
       }
       suggestion = "Kurangi pengkonsumsian rokok";
     }
+
     if (exercise <= 0) {
       if (suggestion.length > 0) {
         suggestion = suggestion + ", perbanyak olahraga";
@@ -129,19 +143,26 @@ const postPredictHandler = async (request, h) => {
     } else {
       result = `Berdasarkan inputan umur, jenis kelamin, kafein, alkohol, merokok, olahraga, mungkin mempengaruhi kualitas tidur. Kemungkinan ada penyebab lain selain inputan.`;
     }
-  } else if (Math.round(prediction * 100) > 66) {
+  } else if (prediction > 66) {
+    label = "Kemungkinan kualitas tidur baik";
     result =
       "Berdasarkan inputan umur, jenis kelamin, kafein, alkohol, merokok, olahraga, inputan tidak mempengaruhi kualitas tidur. Kemungkinan ada penyebab lain selain inputan.";
   } else {
     result = "Hasill tidak dikenali label !";
   }
 
+  const id = nanoid(32);
+  const date = new Date().toISOString();
+  const data = [id, date, prediction];
+
   return h.response({
     status: "success",
     message: "Berhasil memprediksi !",
     data: {
-      label: result,
-      percentage: Math.round(prediction * 100),
+      label: label,
+      suggestion: result,
+      percentage: prediction + "%",
+      data: data,
     },
   });
 };
