@@ -63,7 +63,7 @@ const postPredictHandler = async (request, h) => {
     exercise,
   });
 
-  const result = "";
+  let result = "";
   let suggestion = "";
   if (Math.round(prediction * 100) < 33) {
     if (cafeine > 0) {
@@ -92,7 +92,11 @@ const postPredictHandler = async (request, h) => {
       }
     }
 
-    result = `Berdasarkan inputan umur, jenis kelamin, kafein, alkohol, merokok, olahraga, mungkin mempengaruhi kualitas tidur. ${suggestion} Kemungkinan ada penyebab lain selain inputan.`;
+    if (suggestion.length > 0) {
+      result = `Berdasarkan inputan umur, jenis kelamin, kafein, alkohol, merokok, olahraga, mungkin mempengaruhi kualitas tidur. ${suggestion}. Kemungkinan ada penyebab lain selain inputan.`;
+    } else {
+      result = `Berdasarkan inputan umur, jenis kelamin, kafein, alkohol, merokok, olahraga, mungkin mempengaruhi kualitas tidur. Kemungkinan ada penyebab lain selain inputan.`;
+    }
   } else if (Math.round(prediction * 100) < 66) {
     if (cafeine > 0) {
       suggestion = "Kurangi mengkonsumsi kafein";
@@ -120,10 +124,14 @@ const postPredictHandler = async (request, h) => {
       }
     }
 
-    result = `Berdasarkan inputan umur, jenis kelamin, kafein, alkohol, merokok, olahraga, mungkin mempengaruhi kualitas tidur. ${suggestion} Kemungkinan ada penyebab lain selain inputan.`;
+    if (suggestion.length > 0) {
+      result = `Berdasarkan inputan umur, jenis kelamin, kafein, alkohol, merokok, olahraga, mungkin mempengaruhi kualitas tidur. ${suggestion}. Kemungkinan ada penyebab lain selain inputan.`;
+    } else {
+      result = `Berdasarkan inputan umur, jenis kelamin, kafein, alkohol, merokok, olahraga, mungkin mempengaruhi kualitas tidur. Kemungkinan ada penyebab lain selain inputan.`;
+    }
   } else if (Math.round(prediction * 100) > 66) {
     result =
-      "Berdasarkan inputan umur, jenis kelamin, kafein, alkohol, merokok, olahraga, inputan tidak mempengaruhi kualitas tidur.";
+      "Berdasarkan inputan umur, jenis kelamin, kafein, alkohol, merokok, olahraga, inputan tidak mempengaruhi kualitas tidur. Kemungkinan ada penyebab lain selain inputan.";
   } else {
     result = "Hasill tidak dikenali label !";
   }
