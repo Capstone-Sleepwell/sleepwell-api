@@ -1,5 +1,5 @@
-const nanoid = require("nanoid");
-const { predict } = require("../services/predict");
+const { predict } = require("../services/predict.js");
+const { addPredictResult, getPredictByUserId, deleteHistory } = require('../dbconfig/db.js');
 
 const getHomeHandler = async (request, h) => {
   return h.response({
@@ -9,8 +9,10 @@ const getHomeHandler = async (request, h) => {
 };
 
 const postPredictHandler = async (request, h) => {
-  const { model } = request.server.app;
-
+  try {
+    const { model } = request.server.app;
+    const userId = request.auth.credentials.id;
+  
   const {
     sleepDuration,
     awakenings,
@@ -30,17 +32,23 @@ const postPredictHandler = async (request, h) => {
     (sleepDuration - stayAwake) / sleepDuration >= 0.8
   ) {
     const percentage = 100;
-    const article = "Pertahankan kualitas tidurmu dengan ...";
+    const label = "Kualitas tidurmu sudah bagus.";
+    const suggestion = "Pertahankan pola tidurmu ya!";
 
+    // masukan ke db
+    // dapetin hasil prediksi
+    const result = await addPredictResult({
+      userId: userId,
+      label: label,
+      prediction: percentage,
+      suggestion: suggestion,
+    });
+    // return di front end
     return h.response({
       status: "success",
       message: "Berhasil memprediksi !",
-      data: {
-        percentage: percentage,
-        label: "Kualitas tidurmu sudah bagus.",
-        article: article,
-      },
-    });
+      data: result[0]
+    }).code(201);
   }
 
   if (
@@ -54,7 +62,7 @@ const postPredictHandler = async (request, h) => {
     return h.response({
       status: "fail",
       message: "Gagal memprediksi, pastikan inputan sudah benar !",
-    });
+    }).code(422);
   }
 
   const predictions = await predict(model, {
@@ -150,21 +158,112 @@ const postPredictHandler = async (request, h) => {
   } else {
     result = "Hasill tidak dikenali label !";
   }
-
-  const id = nanoid(32);
-  const date = new Date().toISOString();
-  const data = [id, date, prediction];
-
+  // masukan ke db
+  // dapetin hasil prediksi
+  const result2 = await addPredictResult({
+    userId: userId,
+    label: label,
+    prediction: prediction,
+    suggestion: result,
+  })
+  // balikin respons
   return h.response({
     status: "success",
     message: "Berhasil memprediksi !",
-    data: {
-      label: label,
-      suggestion: result,
-      percentage: prediction + "%",
-      data: data,
-    },
-  });
+    data: result2[0]
+  }).code(201);
+  } catch(error) {
+    console.log("Error: ", error.message)
+  }
 };
 
-module.exports = { getHomeHandler, postPredictHandler };
+const getUserHandler = async (request, h) => {
+  try {
+    // Data user dari validasi token JWT
+    const user = request.auth.credentials;
+    // Kembalikan data profile user
+    return h
+      .response({
+        status: "success",
+        data: user,
+      })
+      .code(200);
+  } catch (error) {
+    return h
+      .response({
+        status: "fail",
+        message: error.message,
+      })
+      .code(500);
+  }
+};
+
+const getHistoriesHandler = async (request, h) => {
+  try {
+    // Ambil userId dari token JWT
+    const userId = request.auth.credentials.id;
+    // query
+    const histories = await getPredictByUserId(userId);
+    // cek
+    if (histories.length === 0) {
+      return h.response({
+        status: "success",
+        message: "Tidak ada histori prediksi ditemukan.",
+        data: [],
+      }).code(200);
+    }
+    // Balikin data histori ke front-end
+    return h.response({
+      status: "success",
+      data: histories,
+    }).code(200);
+
+  } catch (error) {
+    console.error("Error fetching histories:", error.message);
+    // Handle error
+    return h.response({
+      status: "fail",
+      message: "Gagal mengambil histori prediksi.",
+    }).code(500);
+  }
+}
+
+const deleteHistoryHandler = async (request, h) => {
+  try {
+    // ambil userId dari token JWT
+    const userId = request.auth.credentials.id;
+    // ambil predictId dari parameter
+    const { predictId } = request.params;
+    // validasi predictId
+    if (!predictId) {
+      return h.response({
+        status: "fail",
+        message: "PredictId harus disertakan.",
+      }).code(400);
+    }
+    // hapus dari db
+    const rowsDeleted = await deleteHistory(userId, predictId);
+    // cek apakah ada baris yg dihapus
+    if (rowsDeleted === 0) {
+      return h.response({
+        status: "fail",
+        message: "Histori prediksi tidak ditemukan.",
+      }).code(404);
+    }
+    // jika ada maka
+    return h.response({
+      status: "success",
+      message: "Histori prediksi berhasil dihapus.",
+    }).code(200);
+
+  } catch (error) {
+    console.error("Error deleting history:", error.message);
+    return h.response({
+      status: "fail",
+      message: "Gagal menghapus histori prediksi.",
+    }).code(500);
+  }
+}
+
+module.exports = { getHomeHandler, postPredictHandler, 
+  getUserHandler, getHistoriesHandler, deleteHistoryHandler };
