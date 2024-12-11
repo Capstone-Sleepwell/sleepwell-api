@@ -13,6 +13,7 @@ const {
   deleteCommentById,
   deleteArticleById,
   postComment,
+  getAllArticles,
 } = require("../dbconfig/db.js");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -286,10 +287,12 @@ const loginGoogleHandler = async (request, h) => {
 
     if (!googleProfile) {
       console.error("Invalid Google ID token");
-      return h.response({
-        status: "fail",
-        message: "Invalid Google ID token",
-      }).code(401);
+      return h
+        .response({
+          status: "fail",
+          message: "Invalid Google ID token",
+        })
+        .code(401);
     }
     // Proses login atau register seperti handler sebelumnya
     const existingUser = await getUserByEmail(googleProfile.email);
@@ -304,12 +307,14 @@ const loginGoogleHandler = async (request, h) => {
         process.env.JWT_SECRET,
         { expiresIn: "30d" }
       );
-      return h.response({
-        status: "success",
-        token,
-        message: `Selamat Datang kembali ${existingUser.name}!`,
-        id: existingUser.id,
-      }).code(200);
+      return h
+        .response({
+          status: "success",
+          token,
+          message: `Selamat Datang kembali ${existingUser.name}!`,
+          id: existingUser.id,
+        })
+        .code(200);
     }
 
     const currentDate = new Date().toISOString().slice(0, 19).replace("T", " ");
@@ -343,18 +348,22 @@ const loginGoogleHandler = async (request, h) => {
       { expiresIn: "30d" }
     );
 
-    return h.response({
-      status: "success",
-      token,
-      message: `Login Berhasil! Halo ${newUser.name}!`,
-      id: newUser.id,
-    }).code(201);
+    return h
+      .response({
+        status: "success",
+        token,
+        message: `Login Berhasil! Halo ${newUser.name}!`,
+        id: newUser.id,
+      })
+      .code(201);
   } catch (error) {
     console.error("Error during Google login:", error);
-    return h.response({
-      status: "fail",
-      message: "An error occurred during login. Please try again later.",
-    }).code(500);
+    return h
+      .response({
+        status: "fail",
+        message: "An error occurred during login. Please try again later.",
+      })
+      .code(500);
   }
 };
 
@@ -479,19 +488,10 @@ const addPasswordGoogleHandler = async (request, h) => {
 
 const addArticle = async (request, h) => {
   try {
-    const { title, image, body } = request.payload;
+    const { image, body } = request.payload;
     const user = request.auth.credentials;
 
-    if (title.length > 50) {
-      return h
-        .response({
-          status: "fail",
-          message: "Title terlalu panjang !",
-        })
-        .code(400);
-    }
-
-    const result = await postArticle(user.id, title, image, body);
+    const result = await postArticle(user.id, image, body);
 
     return h
       .response({
@@ -509,10 +509,31 @@ const addArticle = async (request, h) => {
   }
 };
 
+const getArticles = async (request, h) => {
+  try {
+    const idArticle = request.params.id;
+    const articles = await getAllArticles(idArticle);
+
+    return h
+      .response({
+        status: "success",
+        message: articles[0],
+      })
+      .code(200);
+  } catch (error) {
+    return h
+      .response({
+        status: "fail",
+        message: error.message,
+      })
+      .code(500);
+  }
+};
 const getArticle = async (request, h) => {
   try {
-    const article = await getArticleById(request.params.id);
-    const comment = await getCommentByArticleId(request.params.id);
+    const idArticle = request.params.id;
+    const article = await getArticleById(idArticle);
+    const comment = await getCommentByArticleId(idArticle);
     const tempArr = [...article[0], ...comment[0]];
 
     return h
@@ -535,7 +556,8 @@ const addComment = async (request, h) => {
   try {
     const { body } = request.payload;
     const user = request.auth.credentials;
-    const comment = await postComment(user.id, request.params.id, body);
+    const idArticle = request.params.id;
+    const comment = await postComment(user.id, idArticle, body);
 
     if (body.length > 255) {
       return h
@@ -641,4 +663,5 @@ module.exports = {
   addComment,
   deleteComment,
   deleteArticle,
+  getArticles,
 };

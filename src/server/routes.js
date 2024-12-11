@@ -14,6 +14,7 @@ const {
   addComment,
   deleteComment,
   deleteArticle,
+  getArticles,
 } = require("./handlers.js");
 
 const routes = [
@@ -81,6 +82,15 @@ const routes = [
       auth: "jwt",
     },
     handler: addPasswordGoogleHandler,
+  },
+  // endpoint get articles
+  {
+    method: "GET",
+    path: "/articles",
+    options: {
+      auth: "jwt",
+    },
+    handler: getArticles,
   },
   // endpoint post article
   {

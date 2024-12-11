@@ -18,9 +18,9 @@ const init = async () => {
   });
   // Plugin
   await server.register([
-    {plugin: HapiAuthJwt2},
-    {plugin: Bell},
-    {plugin: Cookie},
+    { plugin: HapiAuthJwt2 },
+    { plugin: Bell },
+    { plugin: Cookie },
   ]);
 
   // Strategy
@@ -32,7 +32,7 @@ const init = async () => {
   server.auth.strategy("google", "bell", {
     provider: "google",
     password: "cookie_encryption_password_secure",
-    clientId: process.env.GOOGLE_CLIENT_ID_WEB,
+    clientId: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     isSecure: false,
     location: server.info.uri,

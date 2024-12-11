@@ -1,5 +1,5 @@
 const mysql = require("mysql2/promise");
-const nanoid = require("nanoid"); 
+const nanoid = require("nanoid");
 require("dotenv").config();
 let db;
 // koneksi
@@ -7,10 +7,10 @@ async function initializeDB() {
   try {
     console.log("Initializing database connection...");
     db = await mysql.createPool({
-      user: process.env.DB_USER, 
+      user: process.env.DB_USER,
       password: process.env.DB_PASS,
-      database: process.env.DB_NAME, 
-      socketPath: `/cloudsql/${process.env.DB_CONNECTION_NAME}`,
+      database: process.env.DB_NAME,
+      host: `/cloudsql/${process.env.DB_CONNECTION_NAME}`,
     });
     console.log("Database connection established!");
   } catch (error) {
@@ -46,7 +46,7 @@ async function createUser(userData) {
         gender,
         google_id,
         currentDate,
-        currentDate
+        currentDate,
       ]
     );
 
@@ -65,7 +65,6 @@ async function createUser(userData) {
 async function getAllUsers() {
   try {
     const [allUsers] = await db.query("SELECT * FROM users");
-    console.log("Fetched users:", allUsers);
     return allUsers;
   } catch (error) {
     console.error("Error fetching users:", error);
@@ -128,17 +127,16 @@ async function updateUserPassword(userId, hashedPassword) {
   }
 }
 
-async function postArticle(userId, title, image, body) {
-  const id = nanoid(21);
+async function postArticle(userId, image, body) {
+  const latestID = await db.query(`SELECT * FROM articles ORDER BY id DESC`);
+  const id = latestID + 1;
 
   try {
     await db.query(
-      `INSERT INTO articles (id, userId, title, image, body) VALUES ('${id}', '${userId}', '${title}', '${image}', '${body}')`
+      `INSERT INTO articles (id, userId, image, body) VALUES ('${id}', '${userId}', '${image}', '${body}')`
     );
     // Periksa apakah query berhasil memperbarui baris
-    const check = await db.query(
-      `SELECT * FROM articles WHERE id = '${id}'`
-    );
+    const check = await db.query(`SELECT * FROM articles WHERE id = '${id}'`);
 
     return check;
   } catch (error) {
@@ -146,11 +144,19 @@ async function postArticle(userId, title, image, body) {
   }
 }
 
+async function getAllArticles() {
+  try {
+    const result = await db.query(`SELECT * FROM articles`);
+
+    return result;
+  } catch (error) {
+    return null;
+  }
+}
+
 async function getArticleById(id) {
   try {
-    const result = await db.query(
-      `SELECT * FROM articles WHERE id = '${id}'`
-    );
+    const result = await db.query(`SELECT * FROM articles WHERE id = ${id}`);
 
     return result;
   } catch (error) {
@@ -160,9 +166,7 @@ async function getArticleById(id) {
 
 async function getCommentById(id) {
   try {
-    const result = await db.query(
-      `SELECT * FROM comments WHERE id = '${id}'`
-    );
+    const result = await db.query(`SELECT * FROM comments WHERE id = '${id}'`);
 
     return result;
   } catch (error) {
@@ -198,9 +202,7 @@ async function deleteArticleById(id) {
   try {
     await db.query(`DELETE FROM comments WHERE articleId = '${id}'`);
 
-    const result = await db.query(
-      `DELETE FROM articles WHERE id = '${id}'`
-    );
+    const result = await db.query(`DELETE FROM articles WHERE id = '${id}'`);
 
     return result;
   } catch (error) {
@@ -221,7 +223,7 @@ async function getCommentByArticleId(id) {
 }
 
 async function postComment(userId, articleId, body) {
-  const id = nanoid(21);
+  const id = 1;
   const currentDate = new Date().toISOString().split("T")[0]; // Format YYYY-MM-DD
 
   try {
@@ -229,9 +231,7 @@ async function postComment(userId, articleId, body) {
       `INSERT INTO comments (id, userId, articleId, body, createdAt, updatedAt) VALUES ('${id}', '${userId}', '${articleId}', '${body}', '${currentDate}', '${currentDate}')`
     );
 
-    const result = await db.query(
-      `SELECT * FROM comments WHERE id = '${id}'`
-    );
+    const result = await db.query(`SELECT * FROM comments WHERE id = ${id}`);
 
     return result;
   } catch (error) {
@@ -242,7 +242,7 @@ async function postComment(userId, articleId, body) {
 async function deleteCommentById(commentId) {
   try {
     const result = await db.query(
-      `DELETE FROM comments WHERE id = '${commentId}'`
+      `DELETE FROM comments WHERE id = ${commentId}`
     );
 
     return result;
@@ -267,4 +267,5 @@ module.exports = {
   getUserIdByArticleId,
   deleteArticleById,
   postComment,
+  getAllArticles,
 };
