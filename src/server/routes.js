@@ -7,6 +7,7 @@ const {
   addUserHandler,
   loginUserHandler,
   loginGoogleHandler,
+  loginGoogleWebHandler,
   addPasswordGoogleHandler,
   addArticle,
   getArticle,
@@ -61,10 +62,16 @@ const routes = [
   {
     method: "POST",
     path: "/auth/google",
-    // options: {
-    //   auth: "google",
-    // },
     handler: loginGoogleHandler,
+  },
+  // endpoint login google lewat web
+  {
+    method: "GET",
+    path: "/login/google",
+    options: {
+      auth: "google",
+    },
+    handler: loginGoogleWebHandler,
   },
   // endpoint set password untuk google user
   {

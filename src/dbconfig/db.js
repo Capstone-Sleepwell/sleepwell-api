@@ -7,12 +7,10 @@ async function initializeDB() {
   try {
     console.log("Initializing database connection...");
     db = await mysql.createPool({
-      //socketPath: `/cloudsql/${process.env.DB_CONNECTION_NAME}`,
-      host: "34.50.86.58",
-      port: 3306,
-      user: process.env.DB_USER,
+      user: process.env.DB_USER, 
       password: process.env.DB_PASS,
-      database: process.env.DB_NAME,
+      database: process.env.DB_NAME, 
+      socketPath: `/cloudsql/${process.env.DB_CONNECTION_NAME}`,
     });
     console.log("Database connection established!");
   } catch (error) {
@@ -32,7 +30,7 @@ async function createUser(userData) {
     const { username, name, email, password, birthdate, gender, google_id } =
       userData;
     const userId = nanoid(21);
-    const currentDate = new Date().toISOString().slice(0, 19).replace("T", " "); // Format 'YYYY-MM-DD HH:MM:SS'
+    const currentDate = new Date().toISOString().split("T")[0]; // Format YYYY-MM-DD
     // const birthdateValue = birthdate ? birthdate : null;
     // simpan user ke db
     await db.query(
@@ -99,14 +97,14 @@ async function getUserByEmail(email) {
 // fungsi untuk mengedit data user berdasarkan id
 async function editUserById(userData) {
   try {
-    const { userId, name, birthdate, gender } = userData;
-    const currentDate = new Date().toISOString().slice(0, 19).replace("T", " "); // Format 'YYYY-MM-DD HH:MM:SS'
+    const { userId, username, name, birthdate, gender } = userData;
+    const currentDate = new Date().toISOString().split("T")[0]; // Format YYYY-MM-DD
 
     await db.query(
-      `UPDATE users SET name = '${name}', birthdate = '${birthdate}', gender = '${gender}', updatedAt = '${currentDate}' WHERE id = '${userId}'`
+      `UPDATE users SET username = '${username}', name = '${name}', birthdate = '${birthdate}', gender = '${gender}', updatedAt = '${currentDate}' WHERE id = '${userId}'`
     );
     const [updatedData] = await db.query(
-      `SELECT id, name, birthdate, gender, updatedAt FROM users WHERE id = '${userId}'`
+      `SELECT * FROM users WHERE id = '${userId}'`
     );
     return updatedData;
   } catch (error) {
@@ -224,7 +222,7 @@ async function getCommentByArticleId(id) {
 
 async function postComment(userId, articleId, body) {
   const id = nanoid(21);
-  const currentDate = new Date().toISOString().slice(0, 19).replace("T", " "); // Format 'YYYY-MM-DD HH:MM:SS'
+  const currentDate = new Date().toISOString().split("T")[0]; // Format YYYY-MM-DD
 
   try {
     await db.query(

@@ -16,7 +16,10 @@ const {
 } = require("../dbconfig/db.js");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+
 const { OAuth2Client } = require("google-auth-library");
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
 require("dotenv").config();
 
 const allowedDomains = ["gmail.com"];
@@ -56,12 +59,13 @@ const getUserHandler = async (request, h) => {
   try {
     // Data user dari validasi token JWT
     const user = request.auth.credentials;
-
+    // query
+    const userData = await getUserById(user.id);
     // Kembalikan data profile user
     return h
       .response({
         status: "success",
-        data: user,
+        data: userData[0],
       })
       .code(200);
   } catch (error) {
@@ -80,11 +84,13 @@ const editUserHandler = async (request, h) => {
     const user = request.auth.credentials;
     // Dapatkan data dari user
     const { username, name, birthdate, gender } = request.payload;
+
+    const formattedBirthdate = new Date(birthdate).toISOString().split("T")[0]; // Format YYYY-MM-DD
     // update
     const editedUser = await editUserById({
       username: username,
       name: name,
-      birthdate: birthdate,
+      birthdate: formattedBirthdate,
       gender: gender,
       userId: user.id,
     });
@@ -93,7 +99,7 @@ const editUserHandler = async (request, h) => {
       .response({
         status: "success",
         message: "Data berhasil diubah",
-        data: editedUser,
+        data: editedUser[0],
       })
       .code(201);
   } catch (error) {
@@ -129,7 +135,6 @@ const addUserHandler = async (request, h) => {
         })
         .code(422);
     }
-    // Ekstrak domain email
     const emailDomain = email.split("@")[1];
     // Validasi domain email
     if (!allowedDomains.includes(emailDomain)) {
@@ -154,14 +159,15 @@ const addUserHandler = async (request, h) => {
     }
     // hased password
     const hasedPassword = await bcrypt.hash(password, 10);
-    const currentDate = new Date().toISOString().slice(0, 19).replace("T", " "); // Format 'YYYY-MM-DD HH:MM:SS'
+    const currentDate = new Date().toISOString().split("T")[0]; // Format YYYY-MM-DD
+    const formattedBirthdate = new Date(birthdate).toISOString().split("T")[0]; // Format YYYY-MM-DD
     // masukan data ke database
     const newUser = await createUser({
       username: username,
       name: name,
       email: email,
       password: hasedPassword,
-      birthdate: birthdate,
+      birthdate: formattedBirthdate,
       gender: gender,
       google_id: null,
       createdAt: currentDate,
@@ -257,38 +263,37 @@ const loginUserHandler = async (request, h) => {
   }
 };
 
-const verifyIdToken = async (idToken) => {
-  const ticket = await client.verifyIdToken({
-    idToken,
-    audience: process.env.GOOGLE_CLIENT_ID,
-  });
-  return ticket.getPayload();
+const verifyID = async (idToken) => {
+  try {
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    return ticket.getPayload();
+  } catch (error) {
+    console.error("Error verifying ID token:", error);
+    throw error;
+  }
 };
 
 const loginGoogleHandler = async (request, h) => {
   try {
-    const { id_token } = request.payload; // Ambil id_token dari Android
+    const { id_token } = request.payload;
+    console.log("ID Token received:", id_token);
 
-    // Verifikasi id_token dengan Google
-    const googleProfile = await verifyIdToken(id_token);
+    const googleProfile = await verifyID(id_token);
+    console.log("Google Profile:", googleProfile);
 
     if (!googleProfile) {
+      console.error("Invalid Google ID token");
       return h.response({
         status: "fail",
         message: "Invalid Google ID token",
       }).code(401);
     }
-
-    const profile = {
-      id: googleProfile.sub,
-      email: googleProfile.email,
-      displayName: googleProfile.name,
-      gender: googleProfile.gender || null,
-    };
-
     // Proses login atau register seperti handler sebelumnya
-    const existingUser = await getUserByEmail(profile.email);
-
+    const existingUser = await getUserByEmail(googleProfile.email);
+    // Check
     if (existingUser) {
       const token = jwt.sign(
         {
@@ -308,9 +313,17 @@ const loginGoogleHandler = async (request, h) => {
     }
 
     const currentDate = new Date().toISOString().slice(0, 19).replace("T", " ");
+    // Data user
+    const profile = {
+      id: googleProfile.sub,
+      email: googleProfile.email,
+      name: googleProfile.name,
+      gender: googleProfile.gender || null,
+    };
+
     const newUser = await createUser({
-      username: profile.displayName,
-      name: profile.displayName,
+      username: profile.name,
+      name: profile.name,
       email: profile.email,
       password: null,
       birthdate: null,
@@ -342,6 +355,70 @@ const loginGoogleHandler = async (request, h) => {
       status: "fail",
       message: "An error occurred during login. Please try again later.",
     }).code(500);
+  }
+};
+
+const loginGoogleWebHandler = async (request, h) => {
+  try {
+    // ambil informasi profile dari google
+    const profile = request.auth.credentials.profile;
+    // cek user apakah sudah ada di database berdasarkan email
+    const exsistingUser = await getUserByEmail(profile.email);
+    // jika user ada maka
+    if (exsistingUser) {
+      // jika user sudah ada, buat token jwt
+      const token = jwt.sign(
+        {
+          userId: exsistingUser.id,
+          email: exsistingUser.email,
+          name: exsistingUser.name,
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: "30d" }
+      );
+      // response
+      return h.response({
+        status: "success",
+        token,
+        message: `Selamat Datang kembali ${exsistingUser.name}!`,
+        id: exsistingUser.id,
+      });
+    }
+
+    const currentDate = new Date().toISOString().slice(0, 19).replace("T", " ");
+    // jika user belum terdaftar, simpan data ke dalam database
+    const newUser = await createUser({
+      google_id: profile.id,
+      username: profile.displayName,
+      name: profile.displayName,
+      email: profile.email,
+      createdAt: currentDate,
+      updatedAt: currentDate,
+    });
+    // buat token
+    const token = jwt.sign(
+      {
+        userId: newUser.id,
+        email: newUser.email,
+        name: newUser.email,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "30d" }
+    );
+    // response
+    return h.response({
+      status: "success",
+      token,
+      message: `Login Berhasil! Halo ${newUser.name}!`,
+      id: newUser.id,
+    });
+  } catch (error) {
+    return h
+      .response({
+        status: "fail",
+        message: error.message,
+      })
+      .code(500);
   }
 };
 
@@ -557,6 +634,7 @@ module.exports = {
   addUserHandler,
   loginUserHandler,
   loginGoogleHandler,
+  loginGoogleWebHandler,
   addPasswordGoogleHandler,
   addArticle,
   getArticle,

@@ -18,29 +18,29 @@ const init = async () => {
   });
   // Plugin
   await server.register([
-    {
-      plugin: HapiAuthJwt2,
-    },
-    {
-      plugin: Bell,
-    },
-    {
-      plugin: Cookie,
-    },
+    {plugin: HapiAuthJwt2},
+    {plugin: Bell},
+    {plugin: Cookie},
   ]);
+
   // Strategy
   server.auth.strategy("jwt", "jwt", {
     key: process.env.JWT_SECRET,
     validate,
   });
+
   server.auth.strategy("google", "bell", {
     provider: "google",
     password: "cookie_encryption_password_secure",
-    clientId: process.env.GOOGLE_CLIENT_ID,
+    clientId: process.env.GOOGLE_CLIENT_ID_WEB,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    isSecure: process.env.NODE_ENV === "production",
-    location: process.env.BASE_URL,
+    isSecure: false,
+    location: server.info.uri,
+    //providerParams: {
+    //    access_type: 'offline',
+    //},
   });
+
   // rute
   server.route(routes);
 
