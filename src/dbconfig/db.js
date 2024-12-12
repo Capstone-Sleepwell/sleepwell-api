@@ -128,15 +128,30 @@ async function updateUserPassword(userId, hashedPassword) {
 }
 
 async function postArticle(userId, image, body) {
-  const latestID = await db.query(`SELECT * FROM articles ORDER BY id DESC`);
-  const id = latestID + 1;
-
   try {
+    const [latestID] = await db.query(
+      `SELECT id FROM articles ORDER BY id DESC LIMIT 1`
+    );
+
+    const getId = () => {
+      for (id in latestID[0]) {
+        if (latestID[0].hasOwnProperty(id)) {
+          var value = latestID[0][id];
+
+          return value;
+        }
+      }
+    };
+
+    const idUser = (await getId()) + 1;
+
     await db.query(
-      `INSERT INTO articles (id, userId, image, body) VALUES ('${id}', '${userId}', '${image}', '${body}')`
+      `INSERT INTO articles (id, userId, image, body) VALUES ('${idUser}', '${userId}', '${image}', '${body}')`
     );
     // Periksa apakah query berhasil memperbarui baris
-    const check = await db.query(`SELECT * FROM articles WHERE id = '${id}'`);
+    const check = await db.query(
+      `SELECT * FROM articles WHERE id = '${idUser}'`
+    );
 
     return check;
   } catch (error) {
