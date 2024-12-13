@@ -2,17 +2,18 @@
 Sleepwell Capstone project repository for API, there's 2 branches: 
 - [Model API Branch](https://github.com/capstone-sleepwell/sleepwell-api/tree/model-api) to get prediction result. 
 - [Backend API Branch](https://github.com/capstone-sleepwell/sleepwell-api/tree/backend-api) all features is here, such as login, register, post article, comment article
+<br><br>
 
 # How to use ?
-
+<br>
 ## Cloning code
 ### backend-api
 > git clone --branch backend-api https://github.com/capstone-sleepwell/sleepwell-api.git
 ### model-api
 > git clone --branch model-api https://github.com/capstone-sleepwell/sleepwell-api.git
-
+<br><br>
 ## Install dependencies
 > npm install
-
+<br><br>
 ## Run
 > npm run start
