@@ -8,10 +8,10 @@ Sleepwell Capstone project repository for API, there's 2 branches:
 
 ## Cloning code
 
-### backend-api
+### - backend-api
 > git clone --branch backend-api https://github.com/capstone-sleepwell/sleepwell-api.git
 
-### model-api
+### - model-api
 > git clone --branch model-api https://github.com/capstone-sleepwell/sleepwell-api.git
 
 <br><br>
