@@ -5,7 +5,6 @@ Sleepwell Capstone project repository for API, there's 2 branches:
 <br><br>
 
 # How to use ?
-<br>
 
 ## Cloning code
 
