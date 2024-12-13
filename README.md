@@ -14,12 +14,12 @@ Sleepwell Capstone project repository for API, there's 2 branches:
 ### - model-api
 > git clone --branch model-api https://github.com/capstone-sleepwell/sleepwell-api.git
 
-<br><br>
+<br>
 
 ## Install dependencies
 > npm install
 
-<br><br>
+<br>
 
 ## Run
 > npm run start
